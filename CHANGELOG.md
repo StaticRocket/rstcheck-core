@@ -47,6 +47,10 @@ NOTE: please use them in this order.
 - Add sphinx v9 to test runner ([#116](https://github.com/rstcheck/rstcheck-core/pull/116))
 - Upgrade base python version to v3.14 for automations ([#117](https://github.com/rstcheck/rstcheck-core/pull/117))
 
+### Bugfixes
+
+- Fix attribute errors with code-blocks and include when using sphinx ([#3](https://github.com/rstcheck/rstcheck-core/issues/3))
+
 ## [v1.2.1 (2024-03-23)](https://github.com/rstcheck/rstcheck-core/releases/v1.2.1)
 
 [diff v1.2.0...v1.2.1](https://github.com/rstcheck/rstcheck-core/compare/v1.2.0...v1.2.1)
