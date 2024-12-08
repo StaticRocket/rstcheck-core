@@ -46,6 +46,7 @@ NOTE: please use them in this order.
 - Dropped python 3.9 support ([#115](https://github.com/rstcheck/rstcheck-core/pull/115))
 - Add sphinx v9 to test runner ([#116](https://github.com/rstcheck/rstcheck-core/pull/116))
 - Upgrade base python version to v3.14 for automations ([#117](https://github.com/rstcheck/rstcheck-core/pull/117))
+- Try to generate a line number for code blocks that don't have one
 
 ### Bugfixes
 
