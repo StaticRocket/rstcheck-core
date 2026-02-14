@@ -6,10 +6,22 @@ import os
 import logging
 import pathlib
 
-from . import config, types, _fork_checker
+from multiprocessing import Process, Pipe
+
+from . import config, types
 
 
 logger = logging.getLogger(__name__)
+
+
+def _mp_check_file(
+    pipe: Pipe,
+    *args,
+) -> list[types.LintError]:
+    """Isolation function for check_file
+    """
+    from . import _fork_checker
+    pipe.send(_fork_checker.check_file(*args))
 
 
 def check_file(
@@ -28,14 +40,24 @@ def check_file(
         defaults to :py:obj:`True`
     :return: A list of found issues
     """
-    pid = os.fork()
-    if pid == 0:
-        from . import _fork_checker
-        _fork_checker.check_file(source_file, rstcheck_config, overwrite_with_file_config)
-        os._exit(0)
-    else:
-        os.waitpid(pid, 0)
+    rec, snd = Pipe(duplex=False)
+    p = Process(target=_mp_check_file,
+                args=(snd, source_file, rstcheck_config, overwrite_with_file_config))
+    p.start()
+    p.join()
+    if p.exitcode == 0:
+        return rec.recv()
 
+    raise AssertionError("Process didn't exit cleanly")
+
+def _mp_check_source(
+    pipe: Pipe,
+    *args,
+) -> list[types.LintError]:
+    """Isolation function for check_file
+    """
+    from . import _fork_checker
+    pipe.send(_fork_checker.check_source(*args))
 
 
 def check_source(
@@ -58,12 +80,15 @@ def check_source(
     :return: :py:obj:`None`
     :yield: Found issues
     """
-    pid = os.fork()
-    if pid == 0:
-        from . import _fork_checker
-        _fork_checker.check_source(
-            source, source_file, ignores, report_level, warn_unknown_settings
+    rec, snd = Pipe(duplex=False)
+    p = Process(target=check_source,
+        args=(
+            snd, source, source_file, ignores, report_level, warn_unknown_settings
         )
-        os._exit(0)
-    else:
-        os.waitpid(pid, 0)
+                )
+    p.start()
+    p.join()
+    if p.exitcode == 0:
+        return rec.recv()
+
+    raise AssertionError("Process didn't exit cleanly")
