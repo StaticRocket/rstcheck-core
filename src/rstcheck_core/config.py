@@ -92,6 +92,7 @@ class RstcheckConfigFile(pydantic.BaseModel):
     ignore_substitutions: t.Optional[t.List[str]] = None  # noqa: UP007,UP006
     ignore_languages: t.Optional[t.List[str]] = None  # noqa: UP007,UP006
     ignore_messages: t.Optional[t.Pattern[str]] = None  # noqa: UP007
+    root_directory: t.Optional[pathlib.Path] = None  # noqa: UP006, UP007
 
     @pydantic.field_validator("report_level", mode="before")
     @classmethod
@@ -156,7 +157,9 @@ class RstcheckConfigFile(pydantic.BaseModel):
 
     @pydantic.field_validator("ignore_messages", mode="before")
     @classmethod
-    def join_regex_str(cls, value: t.Any) -> str | t.Pattern[str] | None:  # noqa: ANN401
+    def join_regex_str(
+        cls, value: t.Any
+    ) -> str | t.Pattern[str] | None:  # noqa: ANN401
         """Validate and concatenate the ignore_messages setting to a RegEx string.
 
         If a list is given, the entries are concatenated with "|" to create an or RegEx.
@@ -179,6 +182,24 @@ class RstcheckConfigFile(pydantic.BaseModel):
             return value
 
         msg = "Not a string or list of strings"
+        raise TypeError(msg)
+
+    @pydantic.field_validator("root_directory", mode="before")
+    @classmethod
+    def valid_root_directory(cls, value: t.Any) -> str:  # noqa: ANN401
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            path = pathlib.Path(value)
+            if path.is_dir():
+                return path
+
+        if isinstance(value, pathlib.Path):
+            if value.is_dir():
+                return value
+
+        msg = "Not a valid root path"
         raise TypeError(msg)
 
 
@@ -208,6 +229,7 @@ class _RstcheckConfigINIFile(pydantic.BaseModel):
     ignore_substitutions: t.Optional[str] = None  # noqa: UP007
     ignore_languages: t.Optional[str] = None  # noqa: UP007
     ignore_messages: t.Optional[str] = None  # noqa: UP007
+    root_directory: t.Optional[str] = None  # noqa: UP006, UP007
 
 
 def _load_config_from_ini_file(
@@ -286,6 +308,7 @@ class _RstcheckConfigTOMLFile(pydantic.BaseModel):
     ignore_substitutions: t.Optional[t.List[str]] = None  # noqa: UP006, UP007
     ignore_languages: t.Optional[t.List[str]] = None  # noqa: UP006, UP007
     ignore_messages: t.Union[t.List[str], str, None] = None  # noqa: UP006, UP007
+    root_directory: t.Optional[pathlib.Path] = None  # noqa: UP006, UP007
 
 
 def _load_config_from_toml_file(
@@ -334,7 +357,9 @@ def _load_config_from_toml_file(
     with pathlib.Path(resolved_file).open("rb") as toml_file_handle:
         toml_dict = tomllib.load(toml_file_handle)
 
-    rstcheck_section: t.Optional[dict[str, t.Any]] = toml_dict.get("tool", {}).get(  # noqa: UP007
+    rstcheck_section: t.Optional[dict[str, t.Any]] = toml_dict.get(
+        "tool", {}
+    ).get(  # noqa: UP007
         "rstcheck"
     )
 

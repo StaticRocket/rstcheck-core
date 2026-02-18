@@ -68,11 +68,10 @@ def check_file(
 
     source = _get_source(source_file)
 
-    _docutils.clean_docutils_directives_and_roles_cache()
-
     return list(
         check_source(
             source,
+            run_config.root_directory,
             source_file=source_file,
             ignores=ignore_dict,
             report_level=run_config.report_level or config.DEFAULT_REPORT_LEVEL,
@@ -158,6 +157,7 @@ def _create_ignore_dict_from_config(rstcheck_config: config.RstcheckConfig) -> t
 
 def check_source(
     source: str,
+    srcdir: pathlib.Path,
     source_file: types.SourceFileOrString | None = None,
     ignores: types.IgnoreDict | None = None,
     report_level: config.ReportLevel = config.DEFAULT_REPORT_LEVEL,
@@ -179,6 +179,12 @@ def check_source(
     if isinstance(source_origin, pathlib.Path) and source_origin.name == "-":
         source_origin = "<stdin>"
     logger.info("Check source from '%s'", source_origin)
+
+    env = None
+    if _extras.SPHINX_INSTALLED:
+        app = _sphinx.setup_app(srcdir)
+        env = app.env
+
     ignores = ignores or types.construct_ignore_dict()
     ignores["directives"].extend(
         inline_config.find_ignored_directives(
@@ -203,16 +209,14 @@ def check_source(
 
     source = _replace_ignored_substitutions(source, ignores["substitutions"])
 
-    _docutils.register_code_directive(
-        ignore_code_directive="code" in ignores["directives"],
-        ignore_codeblock_directive="code-block" in ignores["directives"],
-        ignore_sourcecode_directive="sourcecode" in ignores["directives"],
-    )
+    if not _extras.SPHINX_INSTALLED:
+        _docutils.register_code_directive(
+            ignore_code_directive="code" in ignores["directives"],
+            ignore_codeblock_directive="code-block" in ignores["directives"],
+            ignore_sourcecode_directive="sourcecode" in ignores["directives"],
+        )
 
     _docutils.ignore_directives_and_roles(ignores["directives"] or [], ignores["roles"] or [])
-
-    if _extras.SPHINX_INSTALLED:
-        _sphinx.load_sphinx_ignores()
 
     writer = _CheckWriter(source, source_origin, ignores, report_level)
 
@@ -228,11 +232,11 @@ def check_source(
         docutils.core.publish_string(
             source,
             writer=writer,
-            source_path=str(source_origin),
             settings_overrides={
                 "halt_level": 5,
                 "report_level": report_level.value,
                 "warning_stream": string_io,
+                "env": env,
             },
         )
 
@@ -882,7 +886,6 @@ class CodeBlockChecker:
                 return (exc.stderr.decode(encoding), temporary_file_path)
 
         return None
-
 
 def _parse_gcc_style_error_message(
     message: str,
