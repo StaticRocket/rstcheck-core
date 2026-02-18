@@ -223,9 +223,7 @@ class RstcheckMainRunner:
         """
         logger.info("Run checks for all files.")
         results = (
-            self._run_checks_parallel()
-            if len(self._files_to_check) > 1
-            else self._run_checks_sync()
+            self._run_checks_sync()
         )
         self._update_results(results)
 

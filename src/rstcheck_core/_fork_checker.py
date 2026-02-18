@@ -184,6 +184,9 @@ def check_source(
     if _extras.SPHINX_INSTALLED:
         app = _sphinx.setup_app(srcdir)
         env = app.env
+        env.current_document.docname = str(
+            source_file.relative_to(srcdir).with_suffix("")
+        )
 
     ignores = ignores or types.construct_ignore_dict()
     ignores["directives"].extend(

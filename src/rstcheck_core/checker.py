@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import logging
 import pathlib
 
@@ -39,9 +40,15 @@ def check_file(
         defaults to :py:obj:`True`
     :return: A list of found issues
     """
-    from . import _fork_checker
-    _fork_checker.check_file(source_file, rstcheck_config, overwrite_with_file_config)
+    rec, snd = Pipe(duplex=False)
+    p = Process(target=_mp_check_file,
+                args=(snd, source_file, rstcheck_config, overwrite_with_file_config))
+    p.start()
+    p.join()
+    if p.exitcode == 0:
+        return rec.recv()
 
+    raise AssertionError("Process didn't exit cleanly")
 
 def _mp_check_source(
     pipe: Pipe,
