@@ -30,10 +30,10 @@ def setup_app(srcdir: pathlib.Path | None) -> sphinx.application.Sphinx | None:
             new_srcdir = temp_dir
             if srcdir:
                 new_srcdir = srcdir.absolute()
-            logger.debug("srcdir: %s" % new_srcdir)
             return sphinx.application.Sphinx(
                 srcdir=str(new_srcdir),
                 confdir=None,
+                status=None,
                 outdir=str(outdir),
                 doctreedir=str(outdir),
                 buildername="dummy",
